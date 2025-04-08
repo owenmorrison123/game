@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Platformer Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #87CEEB;
+    }
+
+    canvas {
+      display: block;
+      margin: auto;
+      background-color: #2C3E50;
+    }
+
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 24px;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="scoreboard">Score: 0</div>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = 800;
+  canvas.height = 600;
+
+  const gravity = 0.5;
+  const friction = 0.98;
+  let isJumping = false;
+  let score = 0;
+  let gameOver = false;
+
+  // Player properties
+  const player = {
+    width: 50,
+    height: 50,
+    x: 100,
+    y: canvas.height - 150,
+    speedX: 0,
+    speedY: 0,
+    speed: 5,
+    jumpPower: -12,
+    color: "#F39C12"
+  };
+
+  // Platforms
+  const platforms = [
+    { x: 0, y: canvas.height - 20, width: canvas.width, height: 20 },
+    { x: 200, y: 400, width: 150, height: 20 },
+    { x: 450, y: 300, width: 150, height: 20 },
+    { x: 100, y: 200, width: 150, height: 20 }
+  ];
+
+  // Collectibles
+  const collectibles = [
+    { x: 250, y: 370, width: 20, height: 20, color: "#1ABC9C", collected: false },
+    { x: 500, y: 270, width: 20, height: 20, color: "#E74C3C", collected: false },
+    { x: 120, y: 170, width: 20, height: 20, color: "#9B59B6", collected: false }
+  ];
+
+  // Game loop
+  function gameLoop() {
+    if (gameOver) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Update player position
+    player.x += player.speedX;
+    player.y += player.speedY;
+
+    // Apply gravity
+    if (player.y + player.height < canvas.height) {
+      player.speedY += gravity;
+    } else {
+      player.speedY = 0;
+      player.y = canvas.height - player.height;
+    }
+
+    // Collision with platforms
+    platforms.forEach(platform => {
+      if (player.x + player.width > platform.x &&
+        player.x < platform.x + platform.width &&
+        player.y + player.height <= platform.y + 10 &&
+        player.y + player.height + player.speedY >= platform.y) {
+        player.speedY = 0;
+        player.y = platform.y - player.height;
+      }
+    });
+
+    // Jumping mechanism
+    if (isJumping && player.y === canvas.height - player.height) {
+      player.speedY = player.jumpPower;
+    }
+
+    // Draw player
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    // Draw platforms
+    platforms.forEach(platform => {
+      ctx.fillStyle = "#2ECC71";
+      ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    });
+
+    // Draw collectibles and check for collection
+    collectibles.forEach(collectible => {
+      if (!collectible.collected) {
+        ctx.fillStyle = collectible.color;
+        ctx.fillRect(collectible.x, collectible.y, collectible.width, collectible.height);
+
+        if (player.x < collectible.x + collectible.width &&
+          player.x + player.width > collectible.x &&
+          player.y < collectible.y + collectible.height &&
+          player.y + player.height > collectible.y) {
+          collectible.collected = true;
+          score += 10;
+          document.getElementById("scoreboard").textContent = "Score: " + score;
+        }
+      }
+    });
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Player controls
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft" || e.key === "a") {
+      player.speedX = -player.speed;
+    } else if (e.key === "ArrowRight" || e.key === "d") {
+      player.speedX = player.speed;
+    } else if (e.key === " " && player.y === canvas.height - player.height) {
+      isJumping = true;
+    }
+  });
+
+  document.addEventListener("keyup", function (e) {
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "ArrowRight" || e.key === "d") {
+      player.speedX = 0;
+    } else if (e.key === " ") {
+      isJumping = false;
+    }
+  });
+
+  // Start the game loop
+  gameLoop();
+</script>
+
+</body>
+</html>
