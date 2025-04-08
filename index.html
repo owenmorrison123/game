@@ -20,28 +20,28 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Add a skybox (simple cube as background)
-        const loader = new THREE.CubeTextureLoader();
-        const skybox = loader.load([
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/px.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/nx.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/py.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/ny.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/pz.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/nz.jpg'
-        ]);
-        scene.background = skybox;
+        // Set a solid background color instead of a skybox for simplicity
+        scene.background = new THREE.Color(0x87CEEB); // Light blue sky color
 
-        // Create ground
+        // Create ground with a material that responds to light
         const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = Math.PI / 2;
         scene.add(ground);
 
-        // Create player
+        // Add some light to make things visible
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+
+        // Ambient light for overall scene illumination
+        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+        scene.add(ambientLight);
+
+        // Create player (red cube) with a material that responds to light
         const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         player.position.y = 1;
         scene.add(player);
@@ -51,10 +51,10 @@
         let ammo = 10;
         let score = 0;
 
-        // Enemy setup
+        // Enemy setup with materials that respond to light
         const enemies = [];
         function createEnemy(x, z) {
-            const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+            const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0x0000ff }));
             enemy.position.set(x, 1, z);
             scene.add(enemy);
             enemies.push(enemy);
@@ -64,11 +64,6 @@
         createEnemy(10, 5);
         createEnemy(-5, 10);
         createEnemy(15, -5);
-
-        // Add some lights
-        const light = new THREE.PointLight(0xffffff, 1, 100);
-        light.position.set(10, 10, 10);
-        scene.add(light);
 
         // Camera setup
         camera.position.y = 2;
