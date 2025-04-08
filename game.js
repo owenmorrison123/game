@@ -1,80 +1,79 @@
-// Setting up the scene and basic FPS controls
+// Setup the scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas') });
+const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let controls, player, clock;
-let characters = [];
-let currentCharacter = 0;
+// Create a basic cube for the player to interact with
+const geometry = new THREE.BoxGeometry();
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const playerCube = new THREE.Mesh(geometry, material);
+scene.add(playerCube);
 
-// Load character models (using simple geometries for now)
-const loadCharacter = (index) => {
-    const geometry = new THREE.BoxGeometry(1, 2, 1); // Simple box geometry for player
-    const material = new THREE.MeshBasicMaterial({ color: index === 0 ? 0x00ff00 : 0xff0000 }); // Different colors for each character
-    const character = new THREE.Mesh(geometry, material);
-    character.position.set(0, 1, 0);
-    scene.add(character);
-    characters.push(character);
-};
+// Set player starting position
+camera.position.z = 5;
 
-const switchCharacter = () => {
-    characters[currentCharacter].visible = false;
-    currentCharacter = (currentCharacter + 1) % characters.length;
-    characters[currentCharacter].visible = true;
-};
+// Controls for movement
+const keyboard = {};
+document.addEventListener('keydown', (event) => {
+    keyboard[event.key] = true;
+});
+document.addEventListener('keyup', (event) => {
+    keyboard[event.key] = false;
+});
 
-// FPS Controls (simplified version)
-const movePlayer = () => {
-    const moveSpeed = 0.1;
-    const rotateSpeed = 0.02;
+// Update movement
+function update() {
+    if (keyboard['w']) camera.position.z -= 0.1;
+    if (keyboard['s']) camera.position.z += 0.1;
+    if (keyboard['a']) camera.position.x -= 0.1;
+    if (keyboard['d']) camera.position.x += 0.1;
 
-    if (keyState['w']) player.position.z -= moveSpeed;
-    if (keyState['s']) player.position.z += moveSpeed;
-    if (keyState['a']) player.position.x -= moveSpeed;
-    if (keyState['d']) player.position.x += moveSpeed;
+    // Update camera view
+    camera.lookAt(playerCube.position);
 
-    if (keyState['arrowleft']) camera.rotation.y -= rotateSpeed;
-    if (keyState['arrowright']) camera.rotation.y += rotateSpeed;
-};
+    // Move the playerCube as an example
+    playerCube.rotation.x += 0.01;
+    playerCube.rotation.y += 0.01;
+}
 
-let keyState = {};
-
-const setupControls = () => {
-    document.addEventListener('keydown', (event) => {
-        keyState[event.key.toLowerCase()] = true;
-        if (event.key.toLowerCase() === 'c') switchCharacter(); // 'C' for character switch
-    });
-    document.addEventListener('keyup', (event) => {
-        keyState[event.key.toLowerCase()] = false;
-    });
-};
-
-// Lighting and environment
-const addLighting = () => {
-    const light = new THREE.PointLight(0xffffff, 1, 100);
-    light.position.set(10, 10, 10);
-    scene.add(light);
-};
-
-// Game Loop
-const animate = () => {
+// Render loop
+function animate() {
     requestAnimationFrame(animate);
-    movePlayer();
+    update();
     renderer.render(scene, camera);
-};
+}
+animate();
 
-const init = () => {
-    camera.position.z = 5;
-    clock = new THREE.Clock();
-    setupControls();
-    addLighting();
-    loadCharacter(0); // Load the first character
-    loadCharacter(1); // Load the second character
-    characters[currentCharacter].visible = true; // Initially show the first character
-    animate();
-};
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.25;
+controls.screenSpacePanning = false;
+controls.maxPolarAngle = Math.PI / 2;
 
-// Start the game
-init();
+const bullets = [];
+function shoot() {
+    const bulletGeometry = new THREE.SphereGeometry(0.1);
+    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+    bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
+    bullets.push(bullet);
+    scene.add(bullet);
+
+    const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    bullet.velocity = direction.multiplyScalar(0.5);
+}
+
+document.addEventListener('click', shoot);
+
+function updateBullets() {
+    bullets.forEach((bullet, index) => {
+        bullet.position.add(bullet.velocity);
+        // Detect collisions or boundaries and remove the bullet
+        if (bullet.position.z < -10) {
+            scene.remove(bullet);
+            bullets.splice(index, 1);
+        }
+    });
+}
