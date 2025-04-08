@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FPS Target Practice</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      overflow: hidden;
+      cursor: none;
+      background-color: #222;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .target {
+      width: 50px;
+      height: 50px;
+      background-color: red;
+      border-radius: 50%;
+      position: absolute;
+    }
+
+    #crosshair {
+      width: 30px;
+      height: 30px;
+      position: absolute;
+      border: 2px solid white;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="crosshair"></div>
+    <div id="score">Score: 0</div>
+  </div>
+
+  <script>
+    const gameArea = document.getElementById('gameArea');
+    const crosshair = document.getElementById('crosshair');
+    const scoreDisplay = document.getElementById('score');
+    let score = 0;
+
+    // Move crosshair with mouse
+    document.addEventListener('mousemove', (e) => {
+      crosshair.style.left = e.clientX + 'px';
+      crosshair.style.top = e.clientY + 'px';
+    });
+
+    // Spawn targets every 1 second
+    function spawnTarget() {
+      const target = document.createElement('div');
+      target.classList.add('target');
+      target.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+      target.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+      gameArea.appendChild(target);
+
+      setTimeout(() => {
+        if (target.parentNode) {
+          target.remove();
+        }
+      }, 4000); // disappears after 4s
+    }
+
+    setInterval(spawnTarget, 1000);
+
+    // Shoot targets
+    document.addEventListener('click', (e) => {
+      const targets = document.querySelectorAll('.target');
+      targets.forEach((target) => {
+        const rect = target.getBoundingClientRect();
+        if (
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom
+        ) {
+          target.remove();
+          score++;
+          scoreDisplay.textContent = 'Score: ' + score;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
