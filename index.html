@@ -1,18 +1,86 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPS Game</title>
+    <title>Simple FPS Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <!-- Make sure the link to game.js is correct -->
-    <script src="game.js"></script>
+    <!-- Load Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // Scene Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create a simple ground (a flat plane)
+        const geometry = new THREE.PlaneGeometry(100, 100);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const ground = new THREE.Mesh(geometry, material);
+        ground.rotation.x = Math.PI / 2; // Rotate it to lay flat
+        scene.add(ground);
+
+        // Create a simple player cube
+        const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.y = 0.5;
+        scene.add(player);
+
+        // Set up initial camera position
+        camera.position.z = 5;
+
+        // Player movement control
+        const keyboard = {};
+        document.addEventListener('keydown', (event) => {
+            keyboard[event.key] = true;
+        });
+        document.addEventListener('keyup', (event) => {
+            keyboard[event.key] = false;
+        });
+
+        // Variables for movement speed
+        const speed = 0.1;
+
+        // Game loop to update scene
+        function update() {
+            // Basic player movement
+            if (keyboard['w']) player.position.z -= speed;
+            if (keyboard['s']) player.position.z += speed;
+            if (keyboard['a']) player.position.x -= speed;
+            if (keyboard['d']) player.position.x += speed;
+
+            // Rotate the player cube to simulate FPS movement
+            player.rotation.x += 0.01;
+            player.rotation.y += 0.01;
+
+            // Update camera position and view
+            camera.lookAt(player.position);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Adjust renderer size on window resize
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    </script>
 </body>
 </html>
