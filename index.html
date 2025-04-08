@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complex FPS Game</title>
+    <title>Advanced FPS Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -13,103 +13,145 @@
     <!-- Load Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Scene Setup
+        // Basic Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Create a simple ground
+        // Add a skybox (simple cube as background)
+        const loader = new THREE.CubeTextureLoader();
+        const skybox = loader.load([
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/px.jpg',
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/nx.jpg',
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/py.jpg',
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/ny.jpg',
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/pz.jpg',
+            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/skybox/nz.jpg'
+        ]);
+        scene.background = skybox;
+
+        // Create ground
         const groundGeometry = new THREE.PlaneGeometry(100, 100);
         const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = Math.PI / 2;
         scene.add(ground);
 
-        // Create a player cube
-        const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+        // Create player
+        const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
         const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
-        player.position.y = 0.5;
+        player.position.y = 1;
         scene.add(player);
 
-        // Enemies (simple cubes)
+        // Player Health & Ammo
+        let playerHealth = 100;
+        let ammo = 10;
+        let score = 0;
+
+        // Enemy setup
         const enemies = [];
         function createEnemy(x, z) {
-            const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
-            enemy.position.set(x, 0.5, z);
+            const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+            enemy.position.set(x, 1, z);
             scene.add(enemy);
             enemies.push(enemy);
         }
+
+        // Create initial enemies
         createEnemy(10, 5);
         createEnemy(-5, 10);
         createEnemy(15, -5);
 
-        // Camera position
+        // Add some lights
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+
+        // Camera setup
         camera.position.y = 2;
         camera.position.z = 5;
 
-        // Mouse look control variables
+        // Mouse look control
         let mouseX = 0;
         let mouseY = 0;
-        let lookSpeed = 0.002;
+        const lookSpeed = 0.002;
 
-        // Mouse event listeners
         document.addEventListener('mousemove', (event) => {
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
         });
 
-        // Player movement control
+        // Movement control
         const keyboard = {};
-        document.addEventListener('keydown', (event) => {
-            keyboard[event.key] = true;
-        });
-        document.addEventListener('keyup', (event) => {
-            keyboard[event.key] = false;
-        });
+        document.addEventListener('keydown', (event) => { keyboard[event.key] = true; });
+        document.addEventListener('keyup', (event) => { keyboard[event.key] = false; });
 
-        // Shooting mechanism using raycasting
+        // Shooting with ammo and reloading
         const bullets = [];
         function shoot() {
-            const raycaster = new THREE.Raycaster();
-            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            raycaster.ray.origin.copy(camera.position);
-            raycaster.ray.direction.copy(direction);
-            const intersects = raycaster.intersectObjects(enemies);
+            if (ammo > 0) {
+                ammo--;
+                const raycaster = new THREE.Raycaster();
+                const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                raycaster.ray.origin.copy(camera.position);
+                raycaster.ray.direction.copy(direction);
+                const intersects = raycaster.intersectObjects(enemies);
 
-            if (intersects.length > 0) {
-                scene.remove(intersects[0].object);
-                enemies.splice(enemies.indexOf(intersects[0].object), 1);
-                console.log('Hit! Remaining enemies:', enemies.length);
+                if (intersects.length > 0) {
+                    scene.remove(intersects[0].object);
+                    enemies.splice(enemies.indexOf(intersects[0].object), 1);
+                    score += 10;  // Increase score on enemy kill
+                }
+            } else {
+                console.log('Out of ammo! Reloading...');
+                reload();
             }
+        }
+
+        function reload() {
+            setTimeout(() => {
+                ammo = 10;  // Reset ammo after reloading
+                console.log('Reloaded!');
+            }, 2000); // Simulate reload time
         }
 
         document.addEventListener('click', shoot);
 
-        // Player movement speed
-        const speed = 0.1;
+        // Enemy AI - Basic movement towards player
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                const direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+                enemy.position.add(direction.multiplyScalar(0.05)); // Move towards player
+            });
+        }
 
-        // Game loop to update scene
+        // Player damage (if enemies get close)
+        function checkCollision() {
+            enemies.forEach(enemy => {
+                const distance = player.position.distanceTo(enemy.position);
+                if (distance < 2) {
+                    playerHealth -= 1;  // Decrease health if too close to an enemy
+                    console.log('Player Health:', playerHealth);
+                }
+            });
+        }
+
+        // Update loop
         function update() {
-            // Player movement
-            if (keyboard['w']) player.position.z -= speed;
-            if (keyboard['s']) player.position.z += speed;
-            if (keyboard['a']) player.position.x -= speed;
-            if (keyboard['d']) player.position.x += speed;
+            if (keyboard['w']) player.position.z -= 0.1;
+            if (keyboard['s']) player.position.z += 0.1;
+            if (keyboard['a']) player.position.x -= 0.1;
+            if (keyboard['d']) player.position.x += 0.1;
 
-            // Camera look around based on mouse movement
+            // Camera look control based on mouse movement
             camera.rotation.y = mouseX * Math.PI;
             camera.rotation.x = mouseY * Math.PI / 4;
 
-            // Update player rotation
-            player.rotation.y += 0.01;
-
-            // Collision with ground detection (simple)
-            if (player.position.y < 0.5) {
-                player.position.y = 0.5;
-            }
+            updateEnemies();
+            checkCollision();
         }
 
         // Resize window handler
@@ -119,7 +161,7 @@
             camera.updateProjectionMatrix();
         });
 
-        // Animation loop
+        // Render loop
         function animate() {
             requestAnimationFrame(animate);
             update();
