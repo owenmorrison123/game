@@ -8,11 +8,26 @@
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
         #hud { position: absolute; top: 20px; left: 20px; color: white; font-family: Arial, sans-serif; }
+        #healthBarContainer {
+            width: 200px;
+            height: 30px;
+            background-color: #444;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        #healthBar {
+            height: 100%;
+            width: 100%;
+            background-color: green;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="hud">
-        <p>Health: <span id="playerHealth">100</span></p>
+        <div id="healthBarContainer">
+            <div id="healthBar"></div>
+        </div>
         <p>Ammo: <span id="ammo">10</span></p>
         <p>Score: <span id="score">0</span></p>
     </div>
@@ -56,9 +71,20 @@
 
         // Update HUD
         function updateHUD() {
-            document.getElementById('playerHealth').textContent = playerHealth;
+            // Update Ammo
             document.getElementById('ammo').textContent = ammo;
+            // Update Score
             document.getElementById('score').textContent = score;
+            // Update Health Bar
+            const healthBar = document.getElementById('healthBar');
+            healthBar.style.width = playerHealth + '%';
+            if (playerHealth > 50) {
+                healthBar.style.backgroundColor = 'green';
+            } else if (playerHealth > 20) {
+                healthBar.style.backgroundColor = 'yellow';
+            } else {
+                healthBar.style.backgroundColor = 'red';
+            }
         }
 
         // Enemy Setup
