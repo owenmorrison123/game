@@ -3,25 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Click the Box</title>
+  <title>Particle Explosion</title>
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f0f0; }
-    #box { width: 50px; height: 50px; background: red; position: absolute; cursor: pointer; }
+    body { margin: 0; overflow: hidden; background-color: #1e1e1e; }
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #ff6347;
+      border-radius: 50%;
+      animation: explode 1s forwards;
+    }
+    @keyframes explode {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
   </style>
 </head>
 <body>
-  <div id="box"></div>
   <script>
-    let score = 0;
-    const box = document.getElementById("box");
-    box.addEventListener("click", () => {
-      score++;
-      alert("Score: " + score);
-      box.style.top = Math.random() * window.innerHeight + "px";
-      box.style.left = Math.random() * window.innerWidth + "px";
+    document.body.addEventListener('click', (e) => {
+      for (let i = 0; i < 100; i++) {
+        createParticle(e.clientX, e.clientY);
+      }
     });
-    box.style.top = Math.random() * window.innerHeight + "px";
-    box.style.left = Math.random() * window.innerWidth + "px";
+
+    function createParticle(x, y) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      document.body.appendChild(particle);
+
+      const angle = Math.random() * 2 * Math.PI;
+      const distance = Math.random() * 200 + 50;
+      const velocityX = Math.cos(angle) * distance;
+      const velocityY = Math.sin(angle) * distance;
+
+      particle.style.left = `${x - 5}px`;
+      particle.style.top = `${y - 5}px`;
+
+      particle.style.animationDuration = `${Math.random() * 1 + 0.5}s`;
+
+      particle.style.transform = `translate(${velocityX}px, ${velocityY}px)`;
+
+      setTimeout(() => particle.remove(), 1000);
+    }
   </script>
 </body>
 </html>
