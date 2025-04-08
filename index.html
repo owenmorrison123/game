@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple FPS Game</title>
+    <title>Complex FPS Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -12,7 +12,6 @@
 <body>
     <!-- Load Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <script>
         // Scene Setup
         const scene = new THREE.Scene();
@@ -21,22 +20,46 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Create a simple ground (a flat plane)
-        const geometry = new THREE.PlaneGeometry(100, 100);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-        const ground = new THREE.Mesh(geometry, material);
-        ground.rotation.x = Math.PI / 2; // Rotate it to lay flat
+        // Create a simple ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = Math.PI / 2;
         scene.add(ground);
 
-        // Create a simple player cube
+        // Create a player cube
         const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         player.position.y = 0.5;
         scene.add(player);
 
-        // Set up initial camera position
+        // Enemies (simple cubes)
+        const enemies = [];
+        function createEnemy(x, z) {
+            const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+            enemy.position.set(x, 0.5, z);
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+        createEnemy(10, 5);
+        createEnemy(-5, 10);
+        createEnemy(15, -5);
+
+        // Camera position
+        camera.position.y = 2;
         camera.position.z = 5;
+
+        // Mouse look control variables
+        let mouseX = 0;
+        let mouseY = 0;
+        let lookSpeed = 0.002;
+
+        // Mouse event listeners
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
 
         // Player movement control
         const keyboard = {};
@@ -47,24 +70,54 @@
             keyboard[event.key] = false;
         });
 
-        // Variables for movement speed
+        // Shooting mechanism using raycasting
+        const bullets = [];
+        function shoot() {
+            const raycaster = new THREE.Raycaster();
+            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            raycaster.ray.origin.copy(camera.position);
+            raycaster.ray.direction.copy(direction);
+            const intersects = raycaster.intersectObjects(enemies);
+
+            if (intersects.length > 0) {
+                scene.remove(intersects[0].object);
+                enemies.splice(enemies.indexOf(intersects[0].object), 1);
+                console.log('Hit! Remaining enemies:', enemies.length);
+            }
+        }
+
+        document.addEventListener('click', shoot);
+
+        // Player movement speed
         const speed = 0.1;
 
         // Game loop to update scene
         function update() {
-            // Basic player movement
+            // Player movement
             if (keyboard['w']) player.position.z -= speed;
             if (keyboard['s']) player.position.z += speed;
             if (keyboard['a']) player.position.x -= speed;
             if (keyboard['d']) player.position.x += speed;
 
-            // Rotate the player cube to simulate FPS movement
-            player.rotation.x += 0.01;
+            // Camera look around based on mouse movement
+            camera.rotation.y = mouseX * Math.PI;
+            camera.rotation.x = mouseY * Math.PI / 4;
+
+            // Update player rotation
             player.rotation.y += 0.01;
 
-            // Update camera position and view
-            camera.lookAt(player.position);
+            // Collision with ground detection (simple)
+            if (player.position.y < 0.5) {
+                player.position.y = 0.5;
+            }
         }
+
+        // Resize window handler
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
 
         // Animation loop
         function animate() {
@@ -75,12 +128,6 @@
 
         animate();
 
-        // Adjust renderer size on window resize
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-        });
     </script>
 </body>
 </html>
