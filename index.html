@@ -65,7 +65,7 @@
         // Mouse look control
         let mouseX = 0;
         let mouseY = 0;
-        const lookSpeed = 0.002;
+        const lookSpeed = 0.001;  // Reduced sensitivity
 
         document.addEventListener('mousemove', (event) => {
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
@@ -78,7 +78,6 @@
         document.addEventListener('keyup', (event) => { keyboard[event.key] = false; });
 
         // Shooting with ammo and reloading
-        const bullets = [];
         function shoot() {
             if (ammo > 0) {
                 ammo--;
@@ -106,6 +105,7 @@
             }, 2000); // Simulate reload time
         }
 
+        // Event listener for mouse click
         document.addEventListener('click', shoot);
 
         // Enemy AI - Basic movement towards player
@@ -135,8 +135,8 @@
             if (keyboard['d']) player.position.x += 0.1;
 
             // Camera look control based on mouse movement
-            camera.rotation.y = mouseX * Math.PI;
-            camera.rotation.x = mouseY * Math.PI / 4;
+            camera.rotation.y = mouseX * Math.PI * lookSpeed;  // Adjusted sensitivity
+            camera.rotation.x = mouseY * Math.PI / 4 * lookSpeed;  // Adjusted sensitivity
 
             updateEnemies();
             checkCollision();
