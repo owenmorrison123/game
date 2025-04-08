@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced FPS Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: Arial, sans-serif; }
+    #gameArea { position: relative; width: 100vw; height: 100vh; }
+    #crosshair { position: absolute; width: 30px; height: 30px; border: 2px solid white; border-radius: 50%; pointer-events: none; z-index: 10; transform: translate(-50%, -50%); }
+    .target { position: absolute; width: 60px; height: 60px; background: red; border-radius: 50%; transition: transform 0.1s linear; z-index: 1; }
+    .headshot { width: 20px; height: 20px; background: yellow; border-radius: 50%; position: absolute; top: 20px; left: 20px; }
+    .hud { position: absolute; color: white; font-size: 16px; padding: 5px; z-index: 5; }
+    #score { top: 10px; left: 10px; }
+    #ammo { top: 40px; left: 10px; }
+    #accuracy { top: 70px; left: 10px; }
+    #shots { top: 100px; left: 10px; }
+    #streak { top: 130px; left: 10px; }
+    #weaponDisplay { top: 160px; left: 10px; }
+    #highScore { bottom: 10px; left: 10px; }
+    #timerBar { position: absolute; top: 10px; right: 10px; width: 200px; height: 20px; background: #333; }
+    #timerFill { height: 100%; background: lime; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="crosshair"></div>
+    <div class="hud" id="score">Score: 0</div>
+    <div class="hud" id="ammo">Ammo: 0/0</div>
+    <div class="hud" id="accuracy">Accuracy: 0%</div>
+    <div class="hud" id="shots">Shots: 0 | Hits: 0</div>
+    <div class="hud" id="streak">Multiplier: x1</div>
+    <div class="hud" id="weaponDisplay">Weapon: Pistol</div>
+    <div class="hud" id="highScore">High Score: 0</div>
+    <div id="timerBar"><div id="timerFill"></div></div>
+  </div>
+  <script>
+    const crosshair = document.getElementById('crosshair');
+    const scoreDisplay = document.getElementById('score');
+    const ammoDisplay = document.getElementById('ammo');
+    const accuracyDisplay = document.getElementById('accuracy');
+    const shotsDisplay = document.getElementById('shots');
+    const streakDisplay = document.getElementById('streak');
+    const weaponDisplay = document.getElementById('weaponDisplay');
+    const highScoreDisplay = document.getElementById('highScore');
+    const timerFill = document.getElementById('timerFill');
+    const gameArea = document.getElementById('gameArea');
+
+    let score = 0, shotsFired = 0, shotsHit = 0, streakCount = 0, multiplier = 1;
+    let ammo = 6, maxAmmo = 6;
+    let reloading = false;
+    let gameTime = 60, gameTimer;
+    let lastHitTime = 0;
+    const weapons = {
+      pistol: { name: "Pistol", ammo: 6, reloadTime: 1500 },
+      rifle: { name: "Rifle", ammo: 10, reloadTime: 2000 },
+      shotgun: { name: "Shotgun", ammo: 2, reloadTime: 2500 }
+    };
+    let currentWeapon = weapons.pistol;
+
+    document.addEventListener('mousemove', (e) => {
+      crosshair.style.left = `${e.clientX}px`;
+      crosshair.style.top = `${e.clientY}px`;
+    });
+
+    function spawnTarget() {
+      const target = document.createElement('div');
+      target.classList.add('target');
+      target.style.left = `${Math.random() * (window.innerWidth - 60)}px`;
+      target.style.top = `${Math.random() * (window.innerHeight - 60)}px`;
+
+      const headshot = document.createElement('div');
+      headshot.classList.add('headshot');
+      target.appendChild(headshot);
+
+      gameArea.appendChild(target);
+
+      const dx = (Math.random() - 0.5) * 4;
+      const dy = (Math.random() - 0.5) * 4;
+      let x = parseFloat(target.style.left);
+      let y = parseFloat(target.style.top);
+
+      function move() {
+        x += dx;
+        y += dy;
+        if (x < 0 || x > window.innerWidth - 60) x = Math.random() * (window.innerWidth - 60);
+        if (y < 0 || y > window.innerHeight - 60) y = Math.random() * (window.innerHeight - 60);
+        target.style.left = `${x}px`;
+        target.style.top = `${y}px`;
+        if (document.body.contains(target)) requestAnimationFrame(move);
+      }
+      move();
+
+      setTimeout(() => target.remove(), 5000);
+    }
+
+    function shoot(e) {
+      if (reloading || ammo <= 0) return;
+      ammo--;
+      shotsFired++;
+      updateHUD();
+
+      let hit = false;
+      const targets = document.querySelectorAll('.target');
+      targets.forEach(target => {
+        const rect = target.getBoundingClientRect();
+        const head = target.querySelector('.headshot').getBoundingClientRect();
+        if (e.clientX >= head.left && e.clientX <= head.right && e.clientY >= head.top && e.clientY <= head.bottom) {
+          target.remove();
+          score += 3 * multiplier;
+          shotsHit++;
+          hit = true;
+        } else if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          target.remove();
+          score += 1 * multiplier;
+          shotsHit++;
+          hit = true;
+        }
+      });
+
+      if (hit) {
+        const now = Date.now();
+        if (now - lastHitTime < 1500) {
+          streakCount++;
+          if (streakCount % 3 === 0) multiplier++;
+        } else {
+          streakCount = 1;
+          multiplier = 1;
+        }
+        lastHitTime = now;
+      }
+
+      updateHUD();
+    }
+
+    function reload() {
+      if (reloading || ammo === maxAmmo) return;
+      reloading = true;
+      ammoDisplay.textContent = "Reloading...";
+      setTimeout(() => {
+        ammo = maxAmmo;
+        reloading = false;
+        updateHUD();
+      }, currentWeapon.reloadTime);
+    }
+
+    function updateHUD() {
+      scoreDisplay.textContent = `Score: ${score}`;
+      ammoDisplay.textContent = `Ammo: ${ammo}/${maxAmmo}`;
+      accuracyDisplay.textContent = `Accuracy: ${shotsFired ? Math.round((shotsHit / shotsFired) * 100) : 0}%`;
+      shotsDisplay.textContent = `Shots: ${shotsFired} | Hits: ${shotsHit}`;
+      streakDisplay.textContent = `Multiplier: x${multiplier}`;
+      weaponDisplay.textContent = `Weapon: ${currentWeapon.name}`;
+      highScoreDisplay.textContent = `High Score: ${localStorage.getItem("fpsHighScore") || 0}`;
+    }
+
+    function startGame() {
+      score = 0;
+      shotsFired = 0;
+      shotsHit = 0;
+      multiplier = 1;
+      streakCount = 0;
+      ammo = maxAmmo = currentWeapon.ammo;
+      updateHUD();
+      gameTimer = setInterval(updateTimer, 1000);
+      setInterval(spawnTarget, 1000);
+    }
+
+    function updateTimer() {
+      gameTime--;
+      timerFill.style.width = `${(gameTime / 60) * 100}%`;
+      if (gameTime <= 0) {
+        clearInterval(gameTimer);
+        endGame();
+      }
+    }
+
+    function endGame() {
+      document.querySelectorAll('.target').forEach(t => t.remove());
+      if (score > (localStorage.getItem("fpsHighScore") || 0)) {
+        localStorage.setItem("fpsHighScore", score);
+      }
+      updateHUD();
+      alert(`Game Over! Your score: ${score}`);
+    }
+
+    document.addEventListener('click', shoot);
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'r') reload();
+      if (e.key === '1') currentWeapon = weapons.pistol;
+      if (e.key === '2') currentWeapon = weapons.rifle;
+      if (e.key === '3') currentWeapon = weapons.shotgun;
+      maxAmmo = currentWeapon.ammo;
+      ammo = maxAmmo;
+      updateHUD();
+    });
+
+    startGame();
+  </script>
+</body>
+</html>
